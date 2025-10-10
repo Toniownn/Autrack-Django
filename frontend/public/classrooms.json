@@ -1,0 +1,122 @@
+[
+  {
+    "id": 1,
+    "name": "Room 101",
+    "status": true,
+    "department": "COT Department",
+    "image": "room-1.jpg",
+    "popularity": true
+  },
+  {
+    "id": 2,
+    "name": "Room 102",
+    "status": false,
+    "department": "CEAS Department",
+    "image": "room-2.jpg",
+    "popularity": false
+  },
+  {
+    "id": 3,
+    "name": "Room 123",
+    "status": true,
+    "department": "COE Department",
+    "image": "room-3.jpg",
+    "popularity": true
+  },
+  {
+    "id": 4,
+    "name": "Room 104",
+    "status": false,
+    "department": "COTBM Department",
+    "image": "room-4.jpg",
+    "popularity": false
+  },
+  {
+    "id": 5,
+    "name": "Room 105",
+    "status": true,
+    "department": "COT Department",
+    "image": "room-5.jpg",
+    "popularity": true
+  },
+  {
+    "id": 6,
+    "name": "Room 106",
+    "status": true,
+    "department": "COT Department",
+    "image": "room-6.jpg",
+    "popularity": false
+  },
+  {
+    "id": 7,
+    "name": "Room 107",
+    "status": false,
+    "department": "CEAS Department",
+    "image": "room-7.jpg",
+    "popularity": true
+  },
+  {
+    "id": 8,
+    "name": "Room 108",
+    "status": true,
+    "department": "COE Department",
+    "image": "room-8.jpg",
+    "popularity": false
+  },
+  {
+    "id": 9,
+    "name": "Room 109",
+    "status": true,
+    "department": "COTBM Department",
+    "image": "room-9.jpg",
+    "popularity": true
+  },
+  {
+    "id": 10,
+    "name": "Room 110",
+    "status": false,
+    "department": "COT Department",
+    "image": "room-10.jpg",
+    "popularity": false
+  },
+  {
+    "id": 11,
+    "name": "Room 111",
+    "status": true,
+    "department": "CEAS Department",
+    "image": "room-11.jpg",
+    "popularity": true
+  },
+  {
+    "id": 12,
+    "name": "Room 112",
+    "status": true,
+    "department": "COE Department",
+    "image": "room-12.jpg",
+    "popularity": false
+  },
+  {
+    "id": 13,
+    "name": "Room 113",
+    "status": false,
+    "department": "COTBM Department",
+    "image": "room-13.jpg",
+    "popularity": true
+  },
+  {
+    "id": 14,
+    "name": "Room 114",
+    "status": true,
+    "department": "COT Department",
+    "image": "room-14.jpg",
+    "popularity": false
+  },
+  {
+    "id": 15,
+    "name": "Room 115",
+    "status": false,
+    "department": "COE Department",
+    "image": "room-15.jpg",
+    "popularity": true
+  }
+]
