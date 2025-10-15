@@ -1,9 +1,10 @@
-import React from "react";
+import { X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface AlertBannerProps {
   message: string;
-  type?: "success" | "error";
-  onClose?: () => void;
+  type?: "success" | "error" | "warning";
+  onClose: () => void;
 }
 
 const AlertBanner: React.FC<AlertBannerProps> = ({
@@ -12,24 +13,30 @@ const AlertBanner: React.FC<AlertBannerProps> = ({
   onClose,
 }) => {
   const bgColor =
-    type === "success"
-      ? "bg-primary text-primary-foreground"
-      : "bg-red-500 text-white";
+    type === "error"
+      ? "bg-gradient-to-r from-red-600 to-red-400"
+      : type === "warning"
+      ? "bg-gradient-to-r from-yellow-500 to-yellow-400"
+      : "bg-gradient-to-r from-orange-600 to-orange-400";
 
   return (
-    <div
-      className={`rounded-md p-3 text-center font-medium shadow-md flex items-center justify-between ${bgColor}`}
-    >
-      <span>{message}</span>
-      {onClose && (
+    <AnimatePresence>
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.3 }}
+        className={`${bgColor} text-white rounded-xl shadow-lg p-4 flex items-center justify-between`}
+      >
+        <p className="font-medium">{message}</p>
         <button
           onClick={onClose}
-          className="ml-3 text-sm opacity-80 hover:opacity-100"
+          className="bg-white/20 hover:bg-white/30 text-white rounded-full p-1 transition"
         >
-          ✖
+          <X size={16} />
         </button>
-      )}
-    </div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

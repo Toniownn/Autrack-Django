@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import AlertBanner from "@/components/Alertbanner";
 import {
   Dialog,
   DialogContent,
@@ -11,86 +10,86 @@ import {
 } from "@/components/ui/dialog";
 
 interface Booking {
-  room: string;
+  id: string;
+  roomName: string;
   department: string;
   date: string;
   time: string;
   name: string;
+  confirmed?: boolean;
+  status?: string;
 }
 
-const Schedules: React.FC = () => {
+const Schedules = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [alertMessage, setAlertMessage] = useState<string | null>(null);
-  const [alertType, setAlertType] = useState<"success" | "error">("success");
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
 
-  // For confirmation modal
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-
-  // Load existing bookings
-  useEffect(() => {
+  // ✅ Load bookings from localStorage
+  const loadBookings = () => {
     const stored = JSON.parse(localStorage.getItem("bookings") || "[]");
     setBookings(stored);
-  }, []);
-
-  // Auto-hide alert
-  useEffect(() => {
-    if (alertMessage) {
-      const timer = setTimeout(() => setAlertMessage(null), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [alertMessage]);
-
-  const handleOpenConfirm = (index: number) => {
-    setSelectedIndex(index);
-    setIsConfirmOpen(true);
   };
 
-  const handleConfirmCancel = () => {
-    if (selectedIndex === null) return;
+  useEffect(() => {
+    loadBookings();
 
-    const updatedBookings = bookings.filter((_, i) => i !== selectedIndex);
-    setBookings(updatedBookings);
-    localStorage.setItem("bookings", JSON.stringify(updatedBookings));
+    const interval = setInterval(() => {
+      const stored = JSON.parse(localStorage.getItem("bookings") || "[]");
+      const now = new Date();
 
-    setAlertType("error");
-    setAlertMessage("❌ Booking cancelled successfully.");
-    setIsConfirmOpen(false);
+      // ✅ Keep your original pending logic untouched
+      const pending = stored.find((booking: Booking) => {
+        const bookingTime = new Date(`${booking.date}T${booking.time}:00`);
+        const diffMinutes = (bookingTime.getTime() - now.getTime()) / 60000;
+        return diffMinutes <= 10 && diffMinutes > 5 && !booking.confirmed;
+      });
+
+      if (pending) {
+        pending.status = "pending";
+        localStorage.setItem("bookings", JSON.stringify(stored));
+      }
+
+      setBookings(stored);
+    }, 60000); // check every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // ✅ Handle Cancel Booking button
+  const handleCancelClick = (booking: Booking) => {
+    setBookingToCancel(booking);
+    setCancelDialogOpen(true);
+  };
+
+  // ✅ Confirm cancel action
+  const confirmCancel = () => {
+    if (!bookingToCancel) return;
+
+    const updated = bookings.filter((b) => b.id !== bookingToCancel.id);
+    localStorage.setItem("bookings", JSON.stringify(updated));
+    setBookings(updated);
+
+    setCancelDialogOpen(false);
+    setBookingToCancel(null);
+
+    // Notify your global listener if needed
+    window.dispatchEvent(new Event("bookingsUpdated"));
   };
 
   return (
     <section className="py-10">
-      <div className="max-w-5xl mx-auto px-4 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8">
         <h1 className="text-3xl font-bold mb-6 text-foreground">My Bookings</h1>
-
-        {/* 🔹 Alert Banner */}
-        {alertMessage && (
-          <div
-            className={`transition-all duration-500 transform mb-4 ${
-              alertMessage
-                ? "translate-y-0 opacity-100"
-                : "-translate-y-5 opacity-0"
-            }`}
-          >
-            <AlertBanner
-              message={alertMessage}
-              type={alertType}
-              onClose={() => setAlertMessage(null)}
-            />
-          </div>
-        )}
 
         {bookings.length === 0 ? (
           <p className="text-muted-foreground">No bookings yet.</p>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {bookings.map((booking, index) => (
-              <Card
-                key={index}
-                className="p-4 border shadow-sm w-full transition-transform duration-200 hover:scale-[1.02]"
-              >
-                <CardContent className="space-y-2 p-0">
-                  <h2 className="font-semibold text-lg">{booking.room}</h2>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {bookings.map((booking) => (
+              <Card key={booking.id} className="p-4 border shadow-sm bg-card">
+                <CardContent className="space-y-2">
+                  <h2 className="font-semibold text-lg">{booking.roomName}</h2>
                   <p className="text-sm text-muted-foreground">
                     Department: {booking.department}
                   </p>
@@ -104,14 +103,29 @@ const Schedules: React.FC = () => {
                     <strong>Booked by:</strong> {booking.name}
                   </p>
 
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="mt-3 w-full"
-                    onClick={() => handleOpenConfirm(index)}
-                  >
-                    Cancel Booking
-                  </Button>
+                  {/* ✅ Status badge (kept from your logic) */}
+                  {booking.status === "pending" && (
+                    <p className="text-yellow-600 font-medium mt-2">
+                      ⏳ Pending confirmation
+                    </p>
+                  )}
+                  {booking.confirmed && (
+                    <p className="text-green-600 font-medium mt-2">
+                      ✅ Confirmed
+                    </p>
+                  )}
+
+                  {/* 🟥 Cancel Button */}
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleCancelClick(booking)}
+                      className="bg-red-600 hover:bg-red-500 text-white font-semibold"
+                    >
+                      Cancel Booking
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -119,26 +133,40 @@ const Schedules: React.FC = () => {
         )}
       </div>
 
-      {/* 🔹 Confirmation Dialog */}
-      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-        <DialogContent className="sm:max-w-sm rounded-lg p-6">
+      {/* 🧾 Cancel Confirmation Modal */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-lg p-6">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">
+            <DialogTitle className="text-lg font-semibold text-destructive">
               Confirm Cancellation
             </DialogTitle>
           </DialogHeader>
 
           <p className="text-sm text-muted-foreground">
-            Are you sure you want to cancel this booking? This action cannot be
-            undone.
+            Are you sure you want to cancel your booking for{" "}
+            <strong>{bookingToCancel?.roomName || "this room"}</strong> on{" "}
+            <strong>
+              {bookingToCancel?.date || "unknown date"} at{" "}
+              {bookingToCancel?.time || "unknown time"}
+            </strong>
+            ? <br />
+            This action cannot be undone.
           </p>
 
-          <DialogFooter className="mt-4 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsConfirmOpen(false)}>
-              No, Keep Booking
+          <DialogFooter className="mt-5 flex justify-end gap-2">
+            <Button
+              onClick={() => setCancelDialogOpen(false)}
+              className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-500 hover:to-orange-300 text-white font-semibold"
+            >
+              No, Keep It
             </Button>
-            <Button variant="destructive" onClick={handleConfirmCancel}>
-              Yes, Cancel
+
+            <Button
+              variant="destructive"
+              onClick={confirmCancel}
+              className="bg-red-600 hover:bg-red-500 text-white font-semibold"
+            >
+              Yes, Cancel It
             </Button>
           </DialogFooter>
         </DialogContent>

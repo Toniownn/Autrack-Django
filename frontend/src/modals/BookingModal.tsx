@@ -22,9 +22,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [type, setType] = useState<"success" | "error">("success");
+  const [type, setType] = useState<"success" | "error" | "warning">("success");
 
-  // Hide alert automatically after 2 seconds
+  // Hide alert after 2 seconds
   useEffect(() => {
     if (message) {
       const timer = setTimeout(() => setMessage(null), 2000);
@@ -32,8 +32,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
     }
   }, [message]);
 
-  // Prevent booking in the past
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+  // Restrict past dates/times
+  const today = new Date().toISOString().split("T")[0];
+  const currentTime = new Date().toTimeString().slice(0, 5);
 
   const handleConfirm = () => {
     if (!name || !date || !time) {
@@ -42,21 +43,22 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
       return;
     }
 
+    // Prevent booking in the past
     const selectedDateTime = new Date(`${date}T${time}`);
     const now = new Date();
-
     if (selectedDateTime < now) {
       setType("error");
-      setMessage("⚠️ You cannot book for a past date or time.");
+      setMessage("⏰ You cannot book a past date or time.");
       return;
     }
 
     const newBooking = {
-      name,
+      roomId: room.id,
+      roomName: room.name,
+      department: room.department,
       date,
       time,
-      room: room.name,
-      department: room.department,
+      name,
     };
 
     const existing = JSON.parse(localStorage.getItem("bookings") || "[]");
@@ -66,8 +68,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
     setMessage(`✅ ${room.name} booked successfully for ${date} at ${time}.`);
 
     setTimeout(() => {
-      onClose();
       setMessage(null);
+      onClose();
     }, 2000);
   };
 
@@ -97,7 +99,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
 
         {/* Form Fields */}
         <div className="flex flex-col gap-3 mt-3">
-          {/* Name Field */}
+          {/* Name */}
           <div>
             <label className="text-sm font-medium mb-1 block">Your Name</label>
             <Input
@@ -108,16 +110,16 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
             />
           </div>
 
-          {/* Date & Time Fields */}
+          {/* Date & Time */}
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="text-sm font-medium mb-1 block">Date</label>
               <Input
                 type="date"
+                min={today}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="h-9 text-sm"
-                min={today} // Prevent selecting past dates
               />
             </div>
             <div className="w-1/2">
@@ -125,9 +127,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
               <Input
                 type="time"
                 value={time}
+                min={date === today ? currentTime : undefined}
                 onChange={(e) => setTime(e.target.value)}
                 className="h-9 text-sm"
-                disabled={!date} // Disable time until a date is chosen 
               />
             </div>
           </div>
