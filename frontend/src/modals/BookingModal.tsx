@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Room } from "@/components/RoomCard";
-import AlertBanner from "@/components/Alertbanner";
+import { useNavigate } from "react-router-dom";
 
 interface BookingModalProps {
   open: boolean;
@@ -20,99 +20,124 @@ interface BookingModalProps {
 const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [type, setType] = useState<"success" | "error" | "warning">("success");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [proceedModalOpen, setProceedModalOpen] = useState(false);
 
-  // Hide alert after 2 seconds
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => setMessage(null), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
+  const navigate = useNavigate();
 
-  // Restrict past dates/times
   const today = new Date().toISOString().split("T")[0];
   const currentTime = new Date().toTimeString().slice(0, 5);
 
   const handleConfirm = () => {
-    if (!name || !date || !time) {
-      setType("error");
-      setMessage("⚠️ Please fill in all fields before booking.");
+    if (!name || !date || !startTime || !endTime) {
+      window.dispatchEvent(
+        new CustomEvent("globalAlert", {
+          detail: {
+            type: "error",
+            message: "⚠️ Please fill in all fields before booking.",
+          },
+        })
+      );
       return;
     }
 
-    // Prevent booking in the past
-    const selectedDateTime = new Date(`${date}T${time}`);
+    const start = new Date(`${date}T${startTime}`);
+    const end = new Date(`${date}T${endTime}`);
     const now = new Date();
-    if (selectedDateTime < now) {
-      setType("error");
-      setMessage("⏰ You cannot book a past date or time.");
+
+    if (start < now) {
+      window.dispatchEvent(
+        new CustomEvent("globalAlert", {
+          detail: {
+            type: "error",
+            message: "⏰ You cannot book a past date or time.",
+          },
+        })
+      );
       return;
     }
 
+    if (end <= start) {
+      window.dispatchEvent(
+        new CustomEvent("globalAlert", {
+          detail: {
+            type: "error",
+            message: "🚫 End time must be after start time.",
+          },
+        })
+      );
+      return;
+    }
+
+    // ✅ Create pending booking
     const newBooking = {
-      roomId: room.id,
+      id: `${room.id}-${Date.now()}`,
       roomName: room.name,
-      department: room.department,
       date,
-      time,
+      startTime,
+      endTime,
       name,
+      confirmed: false,
+      status: "pending",
     };
 
     const existing = JSON.parse(localStorage.getItem("bookings") || "[]");
     localStorage.setItem("bookings", JSON.stringify([...existing, newBooking]));
 
-    setType("success");
-    setMessage(`✅ ${room.name} booked successfully for ${date} at ${time}.`);
+    // 🔔 Dispatch global alert (stays across pages)
+    window.dispatchEvent(
+      new CustomEvent("globalAlert", {
+        detail: {
+          type: "success",
+          message: `✅ You have successfully booked room ${room.name}.`,
+        },
+      })
+    );
 
+    // Close modal after 2 seconds and show proceed modal
     setTimeout(() => {
-      setMessage(null);
       onClose();
+      setProceedModalOpen(true);
     }, 2000);
+
+    window.dispatchEvent(new Event("bookingsUpdated"));
+  };
+
+  const handleProceedYes = () => {
+    setProceedModalOpen(false);
+    navigate("/schedules");
+  };
+
+  const handleProceedNo = () => {
+    setProceedModalOpen(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md rounded-lg p-6">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">
-            Book {room.name}
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      {/* 🧾 Booking Modal */}
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md rounded-lg p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">
+              Book {room.name}
+            </DialogTitle>
+          </DialogHeader>
 
-        {/* Alert Banner */}
-        {message && (
-          <div
-            className={`transition-all duration-500 transform ${
-              message ? "translate-y-0 opacity-100" : "-translate-y-5 opacity-0"
-            }`}
-          >
-            <AlertBanner
-              message={message}
-              type={type}
-              onClose={() => setMessage(null)}
-            />
-          </div>
-        )}
+          <div className="flex flex-col gap-3 mt-3">
+            <div>
+              <label className="text-sm font-medium mb-1 block">
+                Your Name
+              </label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your full name"
+                className="h-9 text-sm"
+              />
+            </div>
 
-        {/* Form Fields */}
-        <div className="flex flex-col gap-3 mt-3">
-          {/* Name */}
-          <div>
-            <label className="text-sm font-medium mb-1 block">Your Name</label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your full name"
-              className="h-9 text-sm"
-            />
-          </div>
-
-          {/* Date & Time */}
-          <div className="flex gap-3">
-            <div className="flex-1">
+            <div>
               <label className="text-sm font-medium mb-1 block">Date</label>
               <Input
                 type="date"
@@ -122,27 +147,78 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
                 className="h-9 text-sm"
               />
             </div>
-            <div className="w-1/2">
-              <label className="text-sm font-medium mb-1 block">Time</label>
-              <Input
-                type="time"
-                value={time}
-                min={date === today ? currentTime : undefined}
-                onChange={(e) => setTime(e.target.value)}
-                className="h-9 text-sm"
-              />
+
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-1 block">
+                  Start Time
+                </label>
+                <Input
+                  type="time"
+                  value={startTime}
+                  min={date === today ? currentTime : undefined}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </div>
+
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-1 block">
+                  End Time
+                </label>
+                <Input
+                  type="time"
+                  value={endTime}
+                  min={
+                    startTime || date === today
+                      ? startTime || currentTime
+                      : currentTime
+                  }
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        <DialogFooter className="mt-5 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleConfirm}>Confirm Booking</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="mt-5 flex justify-end gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirm}>Confirm Booking</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 🚀 Proceed Modal */}
+      <Dialog open={proceedModalOpen} onOpenChange={setProceedModalOpen}>
+        <DialogContent className="sm:max-w-sm rounded-lg p-6 text-center">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">
+              Proceed to your bookings?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground mt-2">
+            Do you want to view your bookings now?
+          </p>
+          <DialogFooter className="mt-6 flex justify-center gap-4">
+            <Button
+              variant="outline"
+              onClick={handleProceedNo}
+              className="px-5"
+            >
+              No
+            </Button>
+            <Button
+              onClick={handleProceedYes}
+              className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-500 hover:to-orange-300 text-white px-5"
+            >
+              Yes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

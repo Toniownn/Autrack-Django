@@ -14,9 +14,10 @@ interface Booking {
   id: string;
   roomName: string;
   department: string;
-  date: string; // YYYY-MM-DD
-  time: string; // HH:mm (24-hour format)
-  name?: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  name: string;
   confirmed?: boolean;
   cancelled?: boolean;
 }
@@ -31,72 +32,98 @@ export default function useBookingNotifications() {
     type: "success" | "warning" | "error";
   } | null>(null);
 
-  // ✅ Load bookings from localStorage
+  // ⏱️ Countdown state
+  const [countdown, setCountdown] = useState(300); // 5 minutes = 300 seconds
+
+  // Countdown effect — runs only when confirm modal is shown
+  useEffect(() => {
+    if (!showConfirmModal) return;
+
+    setCountdown(300); // reset timer to 5 minutes whenever modal opens
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [showConfirmModal]);
+
+  // Format countdown as mm:ss
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const s = Math.floor(seconds % 60)
+      .toString()
+      .padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
   const loadBookings = () => {
     const stored = JSON.parse(localStorage.getItem("bookings") || "[]");
     setBookings(stored);
     return stored;
   };
 
-  // ✅ Save bookings
   const saveBookings = (data: Booking[]) => {
     localStorage.setItem("bookings", JSON.stringify(data));
-    setBookings(data);
     window.dispatchEvent(new Event("bookingsUpdated"));
   };
 
-  // 🕓 Auto check for upcoming bookings
   useEffect(() => {
     const checkBookings = () => {
       const stored = loadBookings();
       const now = new Date();
 
       stored.forEach((booking: Booking) => {
-        const bookingTime = new Date(`${booking.date}T${booking.time}:00`);
-        const diffMinutes = (bookingTime.getTime() - now.getTime()) / 60000;
+        const start = new Date(`${booking.date}T${booking.startTime}:00`);
+        const end = new Date(`${booking.date}T${booking.endTime}:00`);
+        const diffToStart = (start.getTime() - now.getTime()) / 60000;
+        const diffToEnd = (end.getTime() - now.getTime()) / 60000;
 
-        // 🔔 Show confirmation modal 10–5 mins before schedule
-        if (diffMinutes <= 10 && diffMinutes > 5 && !booking.confirmed) {
+        if (diffToStart <= 10 && diffToStart > 5 && !booking.confirmed) {
           setActiveBooking(booking);
           setShowConfirmModal(true);
         }
 
-        // ⏰ Auto-cancel after 5 mins without confirmation
-        if (diffMinutes <= 5 && !booking.confirmed) {
-          const updated = stored.filter(
-            (b: Booking) =>
-              !(
-                b.roomName === booking.roomName &&
-                b.date === booking.date &&
-                b.time === booking.time
-              )
-          );
+        if (diffToStart <= 5 && !booking.confirmed) {
+          const updated = stored.filter((b: Booking) => b.id !== booking.id);
           saveBookings(updated);
-
           setBanner({
-            message: `❌ Your booking for ${booking.roomName} has been automatically cancelled.`,
+            message: `❌ Your booking for ${booking.roomName} was auto-cancelled.`,
             type: "error",
           });
           setShowConfirmModal(false);
           setActiveBooking(null);
         }
+
+        if (diffToEnd <= 0) {
+          const updated = stored.filter((b: Booking) => b.id !== booking.id);
+          saveBookings(updated);
+          setBanner({
+            message: `🕓 Your booking for ${booking.roomName} has ended.`,
+            type: "warning",
+          });
+        }
       });
     };
 
     checkBookings();
-    const interval = setInterval(checkBookings, 30000); // check every 30s
+    const interval = setInterval(checkBookings, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ Confirm booking manually
   const confirmBooking = () => {
     if (!activeBooking) return;
 
     const updated = bookings.map((b) =>
-      b.roomName === activeBooking.roomName &&
-      b.date === activeBooking.date &&
-      b.time === activeBooking.time
-        ? { ...b, confirmed: true }
+      b.id === activeBooking.id
+        ? { ...b, confirmed: true, status: "confirmed" }
         : b
     );
 
@@ -108,39 +135,27 @@ export default function useBookingNotifications() {
     });
   };
 
-  // ✅ Cancel booking manually
   const cancelBooking = () => {
     if (!activeBooking) return;
-
-    const updated = bookings.filter(
-      (b) =>
-        !(
-          b.roomName === activeBooking.roomName &&
-          b.date === activeBooking.date &&
-          b.time === activeBooking.time
-        )
-    );
-
+    const updated = bookings.filter((b) => b.id !== activeBooking.id);
     saveBookings(updated);
     setShowCancelModal(false);
     setShowConfirmModal(false);
     setActiveBooking(null);
-
     setBanner({
       message: `❌ Booking for ${activeBooking.roomName} has been cancelled.`,
       type: "error",
     });
   };
 
-  // ✅ Reopen modal on refresh if within 10–5 minute window
   useEffect(() => {
     const stored = loadBookings();
     const now = new Date();
 
     const pending = stored.find((booking: Booking) => {
-      const bookingTime = new Date(`${booking.date}T${booking.time}:00`);
-      const diffMinutes = (bookingTime.getTime() - now.getTime()) / 60000;
-      return diffMinutes <= 10 && diffMinutes > 5 && !booking.confirmed;
+      const start = new Date(`${booking.date}T${booking.startTime}:00`);
+      const diffToStart = (start.getTime() - now.getTime()) / 60000;
+      return diffToStart <= 10 && diffToStart > 5 && !booking.confirmed;
     });
 
     if (pending) {
@@ -149,17 +164,20 @@ export default function useBookingNotifications() {
     }
   }, []);
 
-  // 🧾 Confirmation Modal
   const ConfirmationModal = (
     <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-      <DialogContent className="sm:max-w-md rounded-xl p-6 z-[1200] bg-background text-foreground">
+      <DialogContent className="sm:max-w-md rounded-xl p-6 z-[1200]">
         <DialogHeader>
           <DialogTitle>Confirm your booking</DialogTitle>
           <DialogDescription>
-            Your booking for <strong>{activeBooking?.roomName}</strong> will
-            start soon.
+            Your booking for <strong>{activeBooking?.roomName}</strong> starts
+            soon.
             <br />
-            Please confirm within 5 minutes.
+            Please confirm within{" "}
+            <span className="font-semibold text-red-600">
+              {formatTime(countdown)}
+            </span>
+            .
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="mt-5 flex justify-end gap-2">
@@ -183,10 +201,9 @@ export default function useBookingNotifications() {
     </Dialog>
   );
 
-  // 🧾 Cancel Confirmation Modal
   const CancelConfirmModal = (
     <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
-      <DialogContent className="sm:max-w-md rounded-xl p-6 z-[1200] bg-background text-foreground">
+      <DialogContent className="sm:max-w-md rounded-xl p-6 z-[1200]">
         <DialogHeader>
           <DialogTitle className="text-destructive font-semibold">
             Confirm Cancellation
@@ -215,7 +232,6 @@ export default function useBookingNotifications() {
     </Dialog>
   );
 
-  // ✅ Live Banner component
   const BannerComponent = banner ? (
     <AlertBanner
       message={banner.message}
