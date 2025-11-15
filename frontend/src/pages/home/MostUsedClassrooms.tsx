@@ -6,23 +6,35 @@ const MostUsedClassrooms = () => {
   const [mostUsed, setMostUsed] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchClassrooms = async () => {
-      try {
-        // Fetch from the public folder
+  const loadMostUsed = async () => {
+    try {
+      const stored = localStorage.getItem("classrooms");
+      if (stored) {
+        const data: Room[] = JSON.parse(stored);
+        setMostUsed(data.filter((room) => room.popularity));
+      } else {
         const response = await fetch("/classrooms.json");
         const data: Room[] = await response.json();
-
-        // Filter rooms marked as popular
         setMostUsed(data.filter((room) => room.popularity));
-      } catch (error) {
-        console.error("Failed to fetch classrooms:", error);
-      } finally {
-        setLoading(false);
+        localStorage.setItem("classrooms", JSON.stringify(data));
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch classrooms:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchClassrooms();
+  useEffect(() => {
+    loadMostUsed();
+
+    // 🔁 Listen for any updates in room availability
+    const handleRoomsUpdate = () => loadMostUsed();
+    window.addEventListener("roomsUpdated", handleRoomsUpdate);
+
+    return () => {
+      window.removeEventListener("roomsUpdated", handleRoomsUpdate);
+    };
   }, []);
 
   if (loading) {

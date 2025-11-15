@@ -5,12 +5,14 @@ interface AlertBannerProps {
   message: string;
   type?: "success" | "error" | "warning";
   onClose: () => void;
+  hideCloseButton?: boolean; // ✅ new optional prop
 }
 
 const AlertBanner: React.FC<AlertBannerProps> = ({
   message,
   type = "success",
   onClose,
+  hideCloseButton = false, // ✅ default false
 }) => {
   const bgColor =
     type === "error"
@@ -29,12 +31,14 @@ const AlertBanner: React.FC<AlertBannerProps> = ({
         className={`${bgColor} text-white rounded-xl shadow-lg p-4 flex items-center justify-between`}
       >
         <p className="font-medium">{message}</p>
-        <button
-          onClick={onClose}
-          className="bg-white/20 hover:bg-white/30 text-white rounded-full p-1 transition"
-        >
-          <X size={16} />
-        </button>
+        {!hideCloseButton && ( // ✅ only show X button if not hidden
+          <button
+            onClick={onClose}
+            className="bg-white/20 hover:bg-white/30 text-white rounded-full p-1 transition"
+          >
+            <X size={16} />
+          </button>
+        )}
       </motion.div>
     </AnimatePresence>
   );

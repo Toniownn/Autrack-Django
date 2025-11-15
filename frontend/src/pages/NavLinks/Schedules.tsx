@@ -21,6 +21,15 @@ interface Booking {
   status?: "pending" | "confirmed" | "ongoing";
 }
 
+interface Room {
+  id: number;
+  name: string;
+  status: boolean;
+  department: string;
+  image: string;
+  popularity: boolean;
+}
+
 const Schedules = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -39,7 +48,6 @@ const Schedules = () => {
   };
 
   useEffect(() => {
-    // initial load
     loadBookings();
 
     const updateInterval = setInterval(() => {
@@ -48,42 +56,23 @@ const Schedules = () => {
       );
       const now = new Date();
 
-      // map/transform bookings and remove those that already ended
-      const transformed = (stored as Booking[])
+      const transformed = stored
         .map((booking) => {
-          // parse start & end with seconds appended
           const start = new Date(`${booking.date}T${booking.startTime}:00`);
           const end = new Date(`${booking.date}T${booking.endTime}:00`);
 
-          // If booking has ended, return null so we can filter it out
-          if (now > end) {
-            return null;
-          }
+          if (now > end) return null;
 
-          // Status rules:
-          // - pending: not confirmed and within pre-confirmation window (10..5 mins)
-          // - confirmed: confirmed and before start
-          // - ongoing: confirmed and between start and end
-          const diffToStart = (start.getTime() - now.getTime()) / 60000; // minutes to start
+          const diffToStart = (start.getTime() - now.getTime()) / 60000;
           if (!booking.confirmed) {
-            // keep pending when not confirmed; show pending only in the intended window,
-            // but keep "pending" label for any unconfirmed booking to match previous behavior
-            // (you can tweak to only set when diffToStart <=10 && diffToStart >5 if desired)
-            if (diffToStart <= 10 && diffToStart > 5) {
-              booking.status = "pending";
-            } else {
-              // unconfirmed and not in the 10..5 window -> show pending (consistent with earlier)
-              booking.status = "pending";
-            }
+            booking.status = diffToStart <= 35 ? "pending" : "pending";
           } else {
-            // booking.confirmed === true
             if (now >= start && now < end) {
               booking.status = "ongoing";
             } else if (now < start) {
               booking.status = "confirmed";
             } else {
-              // should have been filtered out above when now > end
-              booking.status = "confirmed";
+              return null;
             }
           }
 
@@ -91,12 +80,10 @@ const Schedules = () => {
         })
         .filter(Boolean) as Booking[];
 
-      // persist transformed bookings (removes ended bookings)
       localStorage.setItem("bookings", JSON.stringify(transformed));
       setBookings(transformed);
-    }, 30000); // every 30s
+    }, 30000);
 
-    // Keep in sync if other parts update bookings
     const onUpdate = () => loadBookings();
     window.addEventListener("bookingsUpdated", onUpdate);
 
@@ -106,21 +93,58 @@ const Schedules = () => {
     };
   }, []);
 
-  // Open cancel dialog
   const handleCancelClick = (booking: Booking) => {
     setBookingToCancel(booking);
     setCancelDialogOpen(true);
   };
 
-  // Confirm cancel action
   const confirmCancel = () => {
     if (!bookingToCancel) return;
 
-    const updated = bookings.filter((b) => b.id !== bookingToCancel.id);
-    saveBookings(updated);
+    const updatedBookings = bookings.filter((b) => b.id !== bookingToCancel.id);
+    saveBookings(updatedBookings);
+
+    // 🟢 Restore room availability
+    const storedRooms = JSON.parse(
+      localStorage.getItem("classrooms") || "null"
+    );
+    if (storedRooms) {
+      const updated = storedRooms.map((r: Room) =>
+        r.name === bookingToCancel.roomName ? { ...r, status: true } : r
+      );
+      localStorage.setItem("classrooms", JSON.stringify(updated));
+    }
 
     setCancelDialogOpen(false);
     setBookingToCancel(null);
+    window.dispatchEvent(new Event("roomsUpdated"));
+  };
+
+  // ✅ Helper to format 24-hour time into 12-hour AM/PM
+  const formatTime12Hour = (timeStr: string) => {
+    const [hour, minute] = timeStr.split(":");
+    const date = new Date();
+    date.setHours(parseInt(hour), parseInt(minute));
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  // ✅ Compute notification time (30 minutes before start) - short format
+  const getNotificationTime = (date: string, startTime: string) => {
+    const start = new Date(`${date}T${startTime}:00`);
+    const notify = new Date(start.getTime() - 30 * 60000);
+    const formattedDate = notify.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    const formattedTime = notify.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    return `${formattedDate} at ${formattedTime}`;
   };
 
   return (
@@ -143,17 +167,24 @@ const Schedules = () => {
                     <strong>Date:</strong> {booking.date}
                   </p>
                   <p className="text-sm">
-                    <strong>Time:</strong> {booking.startTime} -{" "}
-                    {booking.endTime}
+                    <strong>Time:</strong> {formatTime12Hour(booking.startTime)}{" "}
+                    - {formatTime12Hour(booking.endTime)}
                   </p>
                   <p className="text-sm">
                     <strong>Booked by:</strong> {booking.name}
                   </p>
 
                   {booking.status === "pending" && (
-                    <p className="text-yellow-600 font-medium mt-2">
-                      ⏳ Pending confirmation
-                    </p>
+                    <>
+                      <p className="text-yellow-600 font-medium mt-2">
+                        ⏳ Pending confirmation
+                      </p>
+                      <p className="text-xs text-muted-foreground italic">
+                        🕒 You’ll be notified on{" "}
+                        {getNotificationTime(booking.date, booking.startTime)}{" "}
+                        to confirm your booking.
+                      </p>
+                    </>
                   )}
                   {booking.status === "confirmed" && (
                     <p className="text-green-600 font-medium mt-2">
@@ -194,8 +225,13 @@ const Schedules = () => {
             <strong>{bookingToCancel?.roomName || "this room"}</strong> on{" "}
             <strong>
               {bookingToCancel?.date || "unknown date"} from{" "}
-              {bookingToCancel?.startTime || "?"} to{" "}
-              {bookingToCancel?.endTime || "?"}
+              {bookingToCancel
+                ? formatTime12Hour(bookingToCancel.startTime)
+                : "?"}{" "}
+              to{" "}
+              {bookingToCancel
+                ? formatTime12Hour(bookingToCancel.endTime)
+                : "?"}
             </strong>
             ? <br />
             This action cannot be undone.

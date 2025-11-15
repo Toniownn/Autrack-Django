@@ -17,18 +17,13 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { useDarkMode } from "../../hooks/useDarkMode";
-import { AuthModal } from "@/modals/AuthModal";
+import { useNavigate } from "react-router-dom"; 
 
 export const UserProfile: React.FC = () => {
   const { darkMode, toggleDarkMode } = useDarkMode();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
-  const [authView, setAuthView] = useState<"login" | "register">("login");
 
-  const openAuth = (view: "login" | "register") => {
-    setAuthView(view);
-    setAuthOpen(true);
-  };
+  const navigate = useNavigate(); // ✅ ADD THIS
 
   return (
     <>
@@ -52,20 +47,25 @@ export const UserProfile: React.FC = () => {
               <User className="w-5 h-5" />
             </button>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent align="end" className="w-48">
             {isLoggedIn ? (
               <>
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => navigate("/admin/dashboard")}>
                   <LayoutDashboard className="w-4 h-4 mr-2" />
                   Dashboard
                 </DropdownMenuItem>
+
                 <DropdownMenuItem>
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
                 </DropdownMenuItem>
+
                 <DropdownMenuSeparator />
+
                 <DropdownMenuItem
                   className="text-destructive cursor-pointer"
                   onClick={() => setIsLoggedIn(false)}
@@ -77,10 +77,14 @@ export const UserProfile: React.FC = () => {
               <>
                 <DropdownMenuLabel>Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => openAuth("login")}>
+
+                {/* AUTO LOGIN — NO AUTH MODAL */}
+                <DropdownMenuItem onClick={() => setIsLoggedIn(true)}>
                   <LogIn className="w-4 h-4 mr-2" /> Login
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openAuth("register")}>
+
+                {/* AUTO LOGIN FOR SIGN UP TOO */}
+                <DropdownMenuItem onClick={() => setIsLoggedIn(true)}>
                   <User className="w-4 h-4 mr-2" /> Sign Up
                 </DropdownMenuItem>
               </>
@@ -88,13 +92,6 @@ export const UserProfile: React.FC = () => {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-
-      {/* Auth Modal */}
-      <AuthModal
-        open={authOpen}
-        onClose={() => setAuthOpen(false)}
-        defaultView={authView}
-      />
     </>
   );
 };

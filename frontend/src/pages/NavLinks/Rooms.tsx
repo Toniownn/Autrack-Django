@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { RoomCard } from "@/components/RoomCard";
-
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, Search, X } from "lucide-react";
@@ -24,29 +23,87 @@ interface Classroom {
 const Rooms: React.FC = () => {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [filteredRooms, setFilteredRooms] = useState<Classroom[]>([]);
-  const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const navigate = useNavigate();
+
+  const loadClassrooms = async () => {
+    try {
+      const stored = localStorage.getItem("classrooms");
+      const bookings = JSON.parse(localStorage.getItem("bookings") || "[]");
+      const now = new Date();
+      const today = now.toISOString().split("T")[0];
+      const currentTime = now.toTimeString().slice(0, 5);
+
+      let data: Classroom[] = [];
+
+      if (stored) {
+        data = JSON.parse(stored);
+      } else {
+        const res = await fetch("/classrooms.json");
+        data = await res.json();
+        localStorage.setItem("classrooms", JSON.stringify(data));
+      }
+
+      const updatedData = data.map((room) => {
+        const hasActiveBooking = bookings.some((b: any) => {
+          if (b.roomName !== room.name) return false;
+          if (b.date !== today) return false;
+          return b.startTime <= currentTime && b.endTime > currentTime;
+        });
+        return { ...room, status: !hasActiveBooking };
+      });
+
+      setClassrooms(updatedData);
+      setFilteredRooms(updatedData);
+      localStorage.setItem("classrooms", JSON.stringify(updatedData));
+    } catch (err) {
+      console.error("Failed to load classrooms:", err);
+    }
+  };
 
   useEffect(() => {
-    fetch("/classrooms.json")
-      .then((res) => res.json())
-      .then((data) => {
-        setClassrooms(data);
-        setFilteredRooms(data);
-      })
-      .catch((err) => console.error("Failed to load classrooms:", err));
+    loadClassrooms();
+
+    const onRoomsUpdate = () => loadClassrooms();
+    window.addEventListener("roomsUpdated", onRoomsUpdate);
+    window.addEventListener("bookingsUpdated", onRoomsUpdate);
+
+    const instantUpdate = setInterval(() => {
+      const bookings = JSON.parse(localStorage.getItem("bookings") || "[]");
+      const now = new Date();
+      const today = now.toISOString().split("T")[0];
+      const currentTime = now.toTimeString().slice(0, 5);
+
+      const shouldUpdate = bookings.some(
+        (b: any) =>
+          b.date === today &&
+          b.startTime <= currentTime &&
+          b.endTime > currentTime
+      );
+
+      if (shouldUpdate) {
+        window.dispatchEvent(new Event("roomsUpdated"));
+      }
+    }, 10000);
+
+    return () => {
+      clearInterval(instantUpdate);
+      window.removeEventListener("roomsUpdated", onRoomsUpdate);
+      window.removeEventListener("bookingsUpdated", onRoomsUpdate);
+    };
   }, []);
 
-  // 🔹 Apply filters and live search
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      window.dispatchEvent(new Event("roomsUpdated"));
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     let filtered = classrooms;
-
-    if (availabilityFilter === "available") {
-      filtered = filtered.filter((room) => room.status === true);
-    } else if (availabilityFilter === "occupied") {
-      filtered = filtered.filter((room) => room.status === false);
-    }
 
     if (departmentFilter !== "all") {
       filtered = filtered.filter(
@@ -62,10 +119,9 @@ const Rooms: React.FC = () => {
     }
 
     setFilteredRooms(filtered);
-  }, [availabilityFilter, departmentFilter, searchTerm, classrooms]);
+  }, [departmentFilter, searchTerm, classrooms]);
 
   const clearFilters = () => {
-    setAvailabilityFilter("all");
     setDepartmentFilter("all");
     setSearchTerm("");
   };
@@ -73,43 +129,19 @@ const Rooms: React.FC = () => {
   return (
     <section className="py-10">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
-        <h1 className="text-3xl font-bold mb-6 text-foreground">Classrooms</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-foreground">Classrooms</h1>
+          <Button
+            onClick={() => navigate("/admin/edit-room")}
+            className="bg-orange-500 hover:bg-orange-400 text-white font-semibold"
+          >
+            Edit Rooms
+          </Button>
+        </div>
 
         {/* 🔹 Filters Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex flex-wrap gap-3 items-center">
-            {/* Availability Filter */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2 border-border"
-                >
-                  Availability:{" "}
-                  <span className="font-medium capitalize">
-                    {availabilityFilter}
-                  </span>
-                  <ChevronDown className="w-4 h-4 opacity-70" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-40">
-                <DropdownMenuItem onClick={() => setAvailabilityFilter("all")}>
-                  All
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setAvailabilityFilter("available")}
-                >
-                  Available
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setAvailabilityFilter("occupied")}
-                >
-                  Occupied
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Department Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -152,10 +184,7 @@ const Rooms: React.FC = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Clear Filters Button */}
-            {(availabilityFilter !== "all" ||
-              departmentFilter !== "all" ||
-              searchTerm !== "") && (
+            {(departmentFilter !== "all" || searchTerm !== "") && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -168,7 +197,6 @@ const Rooms: React.FC = () => {
             )}
           </div>
 
-          {/* Search Input */}
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -177,11 +205,10 @@ const Rooms: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9"
-            />    
+            />
           </div>
         </div>
 
-        {/* 🔹 Rooms Grid */}
         {filteredRooms.length === 0 ? (
           <p className="text-muted-foreground">No classrooms found.</p>
         ) : (

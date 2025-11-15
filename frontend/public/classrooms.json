@@ -10,7 +10,7 @@
   {
     "id": 2,
     "name": "Room 102",
-    "status": false,
+    "status": true,
     "department": "CEAS Department",
     "image": "room-2.jpg",
     "popularity": false
@@ -26,7 +26,7 @@
   {
     "id": 4,
     "name": "Room 104",
-    "status": false,
+    "status": true,
     "department": "COTBM Department",
     "image": "room-4.jpg",
     "popularity": false
@@ -50,7 +50,7 @@
   {
     "id": 7,
     "name": "Room 107",
-    "status": false,
+    "status": true,
     "department": "CEAS Department",
     "image": "room-7.jpg",
     "popularity": true
@@ -74,7 +74,7 @@
   {
     "id": 10,
     "name": "Room 110",
-    "status": false,
+    "status": true,
     "department": "COT Department",
     "image": "room-10.jpg",
     "popularity": false
@@ -98,7 +98,7 @@
   {
     "id": 13,
     "name": "Room 113",
-    "status": false,
+    "status": true,
     "department": "COTBM Department",
     "image": "room-13.jpg",
     "popularity": true
@@ -114,7 +114,7 @@
   {
     "id": 15,
     "name": "Room 115",
-    "status": false,
+    "status": true,
     "department": "COE Department",
     "image": "room-15.jpg",
     "popularity": true
