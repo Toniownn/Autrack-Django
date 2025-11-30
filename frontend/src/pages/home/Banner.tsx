@@ -1,7 +1,24 @@
+import ctuBuilding from "@/assets/ctuBuilding.jpg";
+
 const Banner = () => {
   return (
-    <section className="bg-gradient-to-r from-orange-600 to-orange-400 text-white rounded-2xl shadow-lg p-8 md:p-12 mt-8 flex flex-col md:flex-row items-center justify-between">
-      <div className="text-center md:text-left max-w-xl">
+    <section className="relative rounded-2xl shadow-lg p-8 md:p-12 mt-8 flex flex-col md:flex-row items-center justify-between overflow-hidden">
+      {/* Background image with directional fade to the right */}
+      <div
+        className="absolute inset-0 bg-cover bg-center opacity-20"
+        style={{
+          backgroundImage: `url(${ctuBuilding})`,
+          maskImage: "linear-gradient(to left, rgba(0,0,0,1), rgba(0,0,0,0))",
+          WebkitMaskImage:
+            "linear-gradient(to left, rgba(0,0,0,1), rgba(0,0,0,0))",
+        }}
+      />
+
+      {/* Gradient overlay with blend mode to show image */}
+      <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-400 mix-blend-overlay" />
+
+      {/* Content */}
+      <div className="relative text-center md:text-left max-w-xl z-10 text-white">
         <h1 className="text-4xl font-bold mb-4">
           Classroom Reservation System
         </h1>
@@ -14,7 +31,8 @@ const Banner = () => {
         </button>
       </div>
 
-      <div className="mt-8 md:mt-0">
+      {/* SVG illustration */}
+      <div className="relative mt-8 md:mt-0 z-10">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className="w-48 h-48 text-white/90"

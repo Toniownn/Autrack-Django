@@ -1,0 +1,122 @@
+[
+  {
+    "id": 1,
+    "name": "Admin User",
+    "age": 35,
+    "gender": "Male",
+    "department": "Admin Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=Admin"
+  },
+  {
+    "id": 2,
+    "name": "Dr. Maria Santos",
+    "age": 42,
+    "gender": "Female",
+    "department": "CEAS Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=MariaSantos"
+  },
+  {
+    "id": 3,
+    "name": "Prof. John Dela Cruz",
+    "age": 39,
+    "gender": "Male",
+    "department": "COE Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=JohnDelaCruz"
+  },
+  {
+    "id": 4,
+    "name": "Dr. Angela Reyes",
+    "age": 45,
+    "gender": "Female",
+    "department": "CEAS Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=AngelaReyes"
+  },
+  {
+    "id": 5,
+    "name": "Prof. Mark Lim",
+    "age": 31,
+    "gender": "Male",
+    "department": "COT Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=MarkLim"
+  },
+  {
+    "id": 6,
+    "name": "Dr. Patricia Gomez",
+    "age": 50,
+    "gender": "Female",
+    "department": "COTBM Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=PatriciaGomez"
+  },
+  {
+    "id": 7,
+    "name": "Prof. Daniel Cruz",
+    "age": 36,
+    "gender": "Male",
+    "department": "CEAS Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=DanielCruz"
+  },
+  {
+    "id": 8,
+    "name": "Dr. Karen Villanueva",
+    "age": 47,
+    "gender": "Female",
+    "department": "CEAS Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=KarenVillanueva"
+  },
+  {
+    "id": 9,
+    "name": "Prof. Joshua Ramos",
+    "age": 29,
+    "gender": "Male",
+    "department": "CEAS Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=JoshuaRamos"
+  },
+  {
+    "id": 10,
+    "name": "Dr. Elaine Bautista",
+    "age": 41,
+    "gender": "Female",
+    "department": "CEAS Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=ElaineBautista"
+  },
+  {
+    "id": 11,
+    "name": "Prof. Carlo Mendoza",
+    "age": 38,
+    "gender": "Male",
+    "department": "COTBM Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=CarloMendoza"
+  },
+  {
+    "id": 12,
+    "name": "Dr. Sofia Torres",
+    "age": 33,
+    "gender": "Female",
+    "department": "CEAS Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=SofiaTorres"
+  },
+  {
+    "id": 13,
+    "name": "Prof. Miguel Ramos",
+    "age": 28,
+    "gender": "Male",
+    "department": "CEAS Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=MiguelRamos"
+  },
+  {
+    "id": 14,
+    "name": "Dr. Hannah Cruz",
+    "age": 44,
+    "gender": "Female",
+    "department": "CEAS Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=HannahCruz"
+  },
+  {
+    "id": 15,
+    "name": "Prof. Raymond Garcia",
+    "age": 40,
+    "gender": "Male",
+    "department": "COT Department",
+    "image": "https://api.dicebear.com/7.x/adventurer/svg?seed=RaymondGarcia"
+  }
+]

@@ -8,7 +8,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import AlertBanner from "@/components/Alertbanner";
+import AlertBanner from "@/components/AlertBanner";
 
 interface Booking {
   id: string;
@@ -20,6 +20,7 @@ interface Booking {
   name: string;
   confirmed?: boolean;
   cancelled?: boolean;
+  createdAt?: string;
 }
 
 export default function useBookingNotifications() {
@@ -32,28 +33,8 @@ export default function useBookingNotifications() {
     type: "success" | "warning" | "error";
   } | null>(null);
 
-  // ⏱️ Countdown state
-  const [countdown, setCountdown] = useState(300); // 5 minutes = 300 seconds
+  const [countdown, setCountdown] = useState(900);
 
-  // Countdown effect — runs only when confirm modal is shown
-  useEffect(() => {
-    if (!showConfirmModal) return;
-
-    setCountdown(300); // reset timer to 5 minutes whenever modal opens
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [showConfirmModal]);
-
-  // Format countdown as mm:ss
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)
       .toString()
@@ -75,10 +56,70 @@ export default function useBookingNotifications() {
     window.dispatchEvent(new Event("bookingsUpdated"));
   };
 
+  // 🕒 Load countdown from localStorage if exists
+  useEffect(() => {
+    if (!activeBooking) return;
+    const key = `confirmCountdownEnd_${activeBooking.id}`;
+    const endTimestamp = localStorage.getItem(key);
+    if (endTimestamp) {
+      const remaining = Math.floor(
+        (parseInt(endTimestamp) - Date.now()) / 1000
+      );
+      if (remaining > 0) setCountdown(remaining);
+      else setCountdown(0);
+    }
+  }, [activeBooking]);
+
+  // ⏱️ Countdown effect with persistence + auto cancel when reaches zero
+  useEffect(() => {
+    if (!showConfirmModal || !activeBooking) return;
+
+    const key = `confirmCountdownEnd_${activeBooking.id}`;
+    let endTimestamp = localStorage.getItem(key);
+
+    if (!endTimestamp) {
+      const end = Date.now() + 900 * 1000;
+      localStorage.setItem(key, end.toString());
+      endTimestamp = end.toString();
+    }
+
+    const interval = setInterval(() => {
+      const remaining = Math.floor(
+        (parseInt(endTimestamp!) - Date.now()) / 1000
+      );
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+        setCountdown(0);
+
+        // 🧨 Auto-cancel + hide modal once countdown reaches zero
+        const stored = loadBookings();
+        const updated = stored.filter(
+          (b: Booking) => b.id !== activeBooking.id
+        );
+        saveBookings(updated);
+        localStorage.removeItem(`confirmCountdownEnd_${activeBooking.id}`);
+        localStorage.removeItem(`dismissedConfirm_${activeBooking.id}`);
+
+        setShowConfirmModal(false);
+        setActiveBooking(null);
+        setBanner({
+          message: `❌ Your booking for ${activeBooking.roomName} was automatically cancelled (no confirmation).`,
+          type: "error",
+        });
+      } else {
+        setCountdown(remaining);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [showConfirmModal, activeBooking]);
+
   useEffect(() => {
     const checkBookings = () => {
       const stored = loadBookings();
       const now = new Date();
+      let modalOpened = false;
 
       stored.forEach((booking: Booking) => {
         const start = new Date(`${booking.date}T${booking.startTime}:00`);
@@ -86,14 +127,53 @@ export default function useBookingNotifications() {
         const diffToStart = (start.getTime() - now.getTime()) / 60000;
         const diffToEnd = (end.getTime() - now.getTime()) / 60000;
 
-        if (diffToStart <= 10 && diffToStart > 5 && !booking.confirmed) {
-          setActiveBooking(booking);
-          setShowConfirmModal(true);
+        // Auto-confirm if booked near start
+        if (!booking.confirmed) {
+          const createdTime = booking.createdAt
+            ? new Date(booking.createdAt)
+            : null;
+          if (createdTime) {
+            const diffCreatedToStart =
+              (start.getTime() - createdTime.getTime()) / 60000;
+            if (diffCreatedToStart <= 35) {
+              const updated = stored.map((b: Booking) =>
+                b.id === booking.id
+                  ? { ...b, confirmed: true, status: "confirmed" }
+                  : b
+              );
+              saveBookings(updated);
+              setBanner({
+                message: `✅ Your booking for ${booking.roomName} was automatically confirmed.`,
+                type: "success",
+              });
+              return;
+            }
+          }
         }
 
-        if (diffToStart <= 5 && !booking.confirmed) {
+        // Show confirm modal 30–15 mins before start, only one modal at a time
+        const dismissedKey = `dismissedConfirm_${booking.id}`;
+        const wasDismissed = localStorage.getItem(dismissedKey);
+
+        if (
+          diffToStart <= 30 &&
+          diffToStart > 15 &&
+          !booking.confirmed &&
+          !modalOpened &&
+          !showConfirmModal &&
+          !wasDismissed
+        ) {
+          setActiveBooking(booking);
+          setShowConfirmModal(true);
+          modalOpened = true;
+        }
+
+        // Auto-cancel if within 15 mins and not confirmed
+        if (diffToStart <= 15 && !booking.confirmed) {
           const updated = stored.filter((b: Booking) => b.id !== booking.id);
           saveBookings(updated);
+          localStorage.removeItem(`confirmCountdownEnd_${booking.id}`);
+          localStorage.removeItem(`dismissedConfirm_${booking.id}`);
           setBanner({
             message: `❌ Your booking for ${booking.roomName} was auto-cancelled.`,
             type: "error",
@@ -102,9 +182,12 @@ export default function useBookingNotifications() {
           setActiveBooking(null);
         }
 
+        // Remove booking after it ends
         if (diffToEnd <= 0) {
           const updated = stored.filter((b: Booking) => b.id !== booking.id);
           saveBookings(updated);
+          localStorage.removeItem(`confirmCountdownEnd_${booking.id}`);
+          localStorage.removeItem(`dismissedConfirm_${booking.id}`);
           setBanner({
             message: `🕓 Your booking for ${booking.roomName} has ended.`,
             type: "warning",
@@ -116,18 +199,18 @@ export default function useBookingNotifications() {
     checkBookings();
     const interval = setInterval(checkBookings, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [showConfirmModal]);
 
   const confirmBooking = () => {
     if (!activeBooking) return;
-
     const updated = bookings.map((b) =>
       b.id === activeBooking.id
         ? { ...b, confirmed: true, status: "confirmed" }
         : b
     );
-
     saveBookings(updated);
+    localStorage.removeItem(`confirmCountdownEnd_${activeBooking.id}`);
+    localStorage.removeItem(`dismissedConfirm_${activeBooking.id}`);
     setShowConfirmModal(false);
     setBanner({
       message: `✅ Your booking for ${activeBooking.roomName} is confirmed.`,
@@ -139,6 +222,8 @@ export default function useBookingNotifications() {
     if (!activeBooking) return;
     const updated = bookings.filter((b) => b.id !== activeBooking.id);
     saveBookings(updated);
+    localStorage.removeItem(`confirmCountdownEnd_${activeBooking.id}`);
+    localStorage.removeItem(`dismissedConfirm_${activeBooking.id}`);
     setShowCancelModal(false);
     setShowConfirmModal(false);
     setActiveBooking(null);
@@ -148,6 +233,13 @@ export default function useBookingNotifications() {
     });
   };
 
+  const handleCloseConfirm = (open: boolean) => {
+    if (!open && activeBooking) {
+      localStorage.setItem(`dismissedConfirm_${activeBooking.id}`, "true");
+    }
+    setShowConfirmModal(open);
+  };
+
   useEffect(() => {
     const stored = loadBookings();
     const now = new Date();
@@ -155,7 +247,7 @@ export default function useBookingNotifications() {
     const pending = stored.find((booking: Booking) => {
       const start = new Date(`${booking.date}T${booking.startTime}:00`);
       const diffToStart = (start.getTime() - now.getTime()) / 60000;
-      return diffToStart <= 10 && diffToStart > 5 && !booking.confirmed;
+      return diffToStart <= 30 && diffToStart > 15 && !booking.confirmed;
     });
 
     if (pending) {
@@ -165,7 +257,7 @@ export default function useBookingNotifications() {
   }, []);
 
   const ConfirmationModal = (
-    <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+    <Dialog open={showConfirmModal} onOpenChange={handleCloseConfirm}>
       <DialogContent className="sm:max-w-md rounded-xl p-6 z-[1200]">
         <DialogHeader>
           <DialogTitle>Confirm your booking</DialogTitle>
@@ -187,6 +279,7 @@ export default function useBookingNotifications() {
           >
             Later
           </Button>
+
           <Button onClick={confirmBooking} className="bg-green-600 text-white">
             Confirm
           </Button>

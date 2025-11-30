@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getImgUrl } from "@/lib/getImgurl";
-import BookingModal from "@/modals/BookingModal"; // ✅ default import
+import BookingModal from "@/modals/BookingModal";
 
 export interface Room {
   id: number;
@@ -21,11 +21,18 @@ interface RoomCardProps {
 export const RoomCard: React.FC<RoomCardProps> = ({ room, showBookButton }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // ✅ Automatically handle both base64 and static URLs
+  const resolveImage = (image: string): string => {
+    if (!image) return "";
+    if (image.startsWith("data:image")) return image;
+    return getImgUrl(image);
+  };
+
   return (
     <>
       <Card className="overflow-hidden border hover:translate-y-[-2px] transition-transform duration-200">
         <img
-          src={getImgUrl(room.image)}
+          src={resolveImage(room.image)}
           alt={room.name}
           className="w-full h-40 object-cover"
         />
@@ -40,29 +47,19 @@ export const RoomCard: React.FC<RoomCardProps> = ({ room, showBookButton }) => {
           </div>
 
           <p className="text-sm text-muted-foreground">{room.department}</p>
-          <p
-            className={`text-sm font-medium ${
-              room.status ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {room.status ? "Available" : "Occupied"}
-          </p>
 
-          {/* ✅ Book Now button only for Room.tsx */}
           {showBookButton && (
             <Button
               className="mt-2 w-full"
-              variant={room.status ? "default" : "secondary"}
-              disabled={!room.status}
+              variant="default"
               onClick={() => setIsModalOpen(true)}
             >
-              {room.status ? "Book Now" : "Unavailable"}
+              Book Now
             </Button>
           )}
         </CardContent>
       </Card>
 
-      {/* ✅ Booking Modal */}
       <BookingModal
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}

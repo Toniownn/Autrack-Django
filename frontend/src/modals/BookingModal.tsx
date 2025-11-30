@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [bookedSlots, setBookedSlots] = useState<
+    { startTime: string; endTime: string }[]
+  >([]);
   const [proceedModalOpen, setProceedModalOpen] = useState(false);
 
   const navigate = useNavigate();
@@ -29,8 +32,22 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
   const today = new Date().toISOString().split("T")[0];
   const currentTime = new Date().toTimeString().slice(0, 5);
 
+  // 🗓️ Load existing bookings for selected date or today
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem("bookings") || "[]");
+    const targetDate = date || today;
+    const filtered = stored.filter(
+      (b: any) => b.roomName === room.name && b.date === targetDate
+    );
+    setBookedSlots(
+      filtered.map((b: any) => ({ startTime: b.startTime, endTime: b.endTime }))
+    );
+  }, [date, room.name, open]);
+
   const handleConfirm = () => {
-    if (!name || !date || !startTime || !endTime) {
+    const effectiveDate = date || today; // ✅ use fallback date for validation
+
+    if (!name || !effectiveDate || !startTime || !endTime) {
       window.dispatchEvent(
         new CustomEvent("globalAlert", {
           detail: {
@@ -42,8 +59,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
       return;
     }
 
-    const start = new Date(`${date}T${startTime}`);
-    const end = new Date(`${date}T${endTime}`);
+    const start = new Date(`${effectiveDate}T${startTime}`);
+    const end = new Date(`${effectiveDate}T${endTime}`);
     const now = new Date();
 
     if (start < now) {
@@ -70,38 +87,72 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
       return;
     }
 
-    // ✅ Create pending booking
+    const existing = JSON.parse(localStorage.getItem("bookings") || "[]");
+    const hasOverlap = existing.some((b: any) => {
+      if (b.roomName !== room.name || b.date !== effectiveDate) return false;
+      return (
+        (startTime >= b.startTime && startTime < b.endTime) ||
+        (endTime > b.startTime && endTime <= b.endTime) ||
+        (startTime <= b.startTime && endTime >= b.endTime)
+      );
+    });
+
+    if (hasOverlap) {
+      window.dispatchEvent(
+        new CustomEvent("globalAlert", {
+          detail: {
+            type: "error",
+            message: "🚫 This room is already booked for the selected time.",
+          },
+        })
+      );
+      return;
+    }
+
+    const diffToStart = (start.getTime() - now.getTime()) / 60000;
+    const autoConfirm = diffToStart <= 35;
+
     const newBooking = {
       id: `${room.id}-${Date.now()}`,
       roomName: room.name,
-      date,
+      department: room.department,
+      date: effectiveDate,
       startTime,
       endTime,
       name,
-      confirmed: false,
-      status: "pending",
+      confirmed: autoConfirm,
+      status: autoConfirm ? "confirmed" : "pending",
     };
 
-    const existing = JSON.parse(localStorage.getItem("bookings") || "[]");
     localStorage.setItem("bookings", JSON.stringify([...existing, newBooking]));
 
-    // 🔔 Dispatch global alert (stays across pages)
+    const storedRooms = JSON.parse(
+      localStorage.getItem("classrooms") || "null"
+    );
+    if (storedRooms) {
+      const updated = storedRooms.map((r: Room) =>
+        r.id === room.id ? { ...r, status: false } : r
+      );
+      localStorage.setItem("classrooms", JSON.stringify(updated));
+    }
+
     window.dispatchEvent(
       new CustomEvent("globalAlert", {
         detail: {
           type: "success",
-          message: `✅ You have successfully booked room ${room.name}.`,
+          message: autoConfirm
+            ? `✅ Room ${room.name} booked and automatically confirmed (starts soon).`
+            : `✅ You have successfully booked room ${room.name}.`,
         },
       })
     );
 
-    // Close modal after 2 seconds and show proceed modal
     setTimeout(() => {
       onClose();
       setProceedModalOpen(true);
-    }, 2000);
-
-    window.dispatchEvent(new Event("bookingsUpdated"));
+      window.dispatchEvent(new Event("bookingsUpdated"));
+      window.dispatchEvent(new Event("roomsUpdated"));
+    }, 1000);
   };
 
   const handleProceedYes = () => {
@@ -142,7 +193,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
               <Input
                 type="date"
                 min={today}
-                value={date}
+                value={date || today}
                 onChange={(e) => setDate(e.target.value)}
                 className="h-9 text-sm"
               />
@@ -180,6 +231,32 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onClose, room }) => {
               </div>
             </div>
           </div>
+
+          {/* 📅 Booked Slots Display */}
+          {bookedSlots.length > 0 && (
+            <div className="border rounded-md bg-gradient-to-r from-yellow-600 to-yellow-400 text-white text-sm p-2">
+              <p className="font-medium text mb-1">Already booked:</p>
+              <ul className="list-disc list-inside">
+                {bookedSlots.map((slot, index) => {
+                  const formatTime = (timeStr: string) => {
+                    const [hour, minute] = timeStr.split(":");
+                    const d = new Date();
+                    d.setHours(parseInt(hour), parseInt(minute));
+                    return d.toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    });
+                  };
+
+                  return (
+                    <li key={index}>
+                      {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
 
           <DialogFooter className="mt-5 flex justify-end gap-2">
             <Button variant="outline" onClick={onClose}>

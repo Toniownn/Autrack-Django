@@ -1,0 +1,137 @@
+[
+  {
+    "id": 1,
+    "roomId": 1,
+    "roomName": "Room 101",
+    "date": "2025-10-28",
+    "startTime": "08:00",
+    "endTime": "09:00",
+    "status": "confirmed"
+  },
+  {
+    "id": 2,
+    "roomId": 2,
+    "roomName": "Room 102",
+    "date": "2025-10-28",
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "confirmed"
+  },
+  {
+    "id": 3,
+    "roomId": 3,
+    "roomName": "Room 123",
+    "date": "2025-10-28",
+    "startTime": "10:00",
+    "endTime": "11:00",
+    "status": "confirmed"
+  },
+  {
+    "id": 4,
+    "roomId": 4,
+    "roomName": "Room 104",
+    "date": "2025-10-28",
+    "startTime": "13:00",
+    "endTime": "14:00",
+    "status": "confirmed"
+  },
+  {
+    "id": 5,
+    "roomId": 5,
+    "roomName": "Room 105",
+    "date": "2025-10-28",
+    "startTime": "15:00",
+    "endTime": "16:00",
+    "status": "confirmed"
+  },
+  {
+    "id": 6,
+    "roomId": 6,
+    "roomName": "Room 106",
+    "date": "2025-10-29",
+    "startTime": "08:00",
+    "endTime": "09:30",
+    "status": "confirmed"
+  },
+  {
+    "id": 7,
+    "roomId": 7,
+    "roomName": "Room 107",
+    "date": "2025-10-29",
+    "startTime": "10:00",
+    "endTime": "11:00",
+    "status": "confirmed"
+  },
+  {
+    "id": 8,
+    "roomId": 8,
+    "roomName": "Room 108",
+    "date": "2025-10-29",
+    "startTime": "12:00",
+    "endTime": "13:00",
+    "status": "confirmed"
+  },
+  {
+    "id": 9,
+    "roomId": 9,
+    "roomName": "Room 109",
+    "date": "2025-10-29",
+    "startTime": "14:00",
+    "endTime": "15:00",
+    "status": "confirmed"
+  },
+  {
+    "id": 10,
+    "roomId": 10,
+    "roomName": "Room 110",
+    "date": "2025-10-29",
+    "startTime": "15:30",
+    "endTime": "16:30",
+    "status": "confirmed"
+  },
+  {
+    "id": 11,
+    "roomId": 11,
+    "roomName": "Room 111",
+    "date": "2025-10-30",
+    "startTime": "08:00",
+    "endTime": "09:00",
+    "status": "confirmed"
+  },
+  {
+    "id": 12,
+    "roomId": 12,
+    "roomName": "Room 112",
+    "date": "2025-10-30",
+    "startTime": "09:30",
+    "endTime": "10:30",
+    "status": "confirmed"
+  },
+  {
+    "id": 13,
+    "roomId": 13,
+    "roomName": "Room 113",
+    "date": "2025-10-30",
+    "startTime": "11:00",
+    "endTime": "12:00",
+    "status": "confirmed"
+  },
+  {
+    "id": 14,
+    "roomId": 14,
+    "roomName": "Room 114",
+    "date": "2025-10-30",
+    "startTime": "13:00",
+    "endTime": "14:00",
+    "status": "confirmed"
+  },
+  {
+    "id": 15,
+    "roomId": 15,
+    "roomName": "Room 115",
+    "date": "2025-10-30",
+    "startTime": "15:00",
+    "endTime": "16:00",
+    "status": "confirmed"
+  }
+]

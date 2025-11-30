@@ -1,5 +1,5 @@
 import React from "react";
-import { Building, Calendar, Users } from "lucide-react";
+import { Building, Calendar, MessageSquare } from "lucide-react"; // changed icon
 import { NavbarItem } from "./NavbarItem";
 
 interface NavigationLinksProps {
@@ -23,9 +23,9 @@ export const NavigationLinks: React.FC<NavigationLinksProps> = ({
       label: "Schedules",
     },
     {
-      to: "/instructors",
-      icon: Users,
-      label: "Instructors",
+      to: "/messages", // changed path
+      icon: MessageSquare, // changed icon
+      label: "Messages", // changed label
     },
   ];
 
