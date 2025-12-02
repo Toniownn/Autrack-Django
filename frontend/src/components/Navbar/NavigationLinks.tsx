@@ -2,6 +2,8 @@ import React from "react";
 import { Building, Calendar, MessageSquare } from "lucide-react"; // changed icon
 import { NavbarItem } from "./NavbarItem";
 
+const role: "user" | "admin" = "admin"; // Todo: Replace with actual role check logic
+
 interface NavigationLinksProps {
   className?: string;
   mobile?: boolean;
@@ -13,7 +15,7 @@ export const NavigationLinks: React.FC<NavigationLinksProps> = ({
 }) => {
   const links = [
     {
-      to: "/rooms",
+      to: role === "admin" ? "admin/edit-room" : "/rooms",
       icon: Building,
       label: "Rooms",
     },

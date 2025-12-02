@@ -7,8 +7,7 @@ import Schedules from "@/pages/NavLinks/Schedules";
 import EditRoom from "@/admin/EditRoom";
 import Dashboard from "@/admin/Dashboard";
 
-
-
+const role: "user" | "admin" = "admin"; // Todo: Replace with actual role check logic
 const router = createBrowserRouter([
   {
     path: "/",
@@ -16,7 +15,7 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Home />,
+        element: role === "admin" ? <Dashboard /> : <Home />,
       },
       {
         path: "rooms",
