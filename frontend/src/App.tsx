@@ -5,6 +5,7 @@ import Footer from "./components/Footer";
 import { Navbar } from "./components/Navbar/Navbar";
 import AlertBanner from "@/components/AlertBanner";
 import useBookingNotifications from "./hooks/useBookingNotifactions";
+import { useAuth } from "./context/AuthContext";
 
 const App = () => {
   const { ConfirmationModal, CancelConfirmModal, Banner } =

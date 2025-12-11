@@ -6,39 +6,29 @@ import Messages from "@/pages/NavLinks/Messages";
 import Schedules from "@/pages/NavLinks/Schedules";
 import EditRoom from "@/admin/EditRoom";
 import Dashboard from "@/admin/Dashboard";
+import Login from "@/pages/login/login";
+import Signup from "@/pages/sign_up/signup";
+import { ProtectedRoute } from "./ProtectedRoute";
 
-const role: "user" | "admin" = "admin"; // Todo: Replace with actual role check logic
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <App />,
+    element: (
+      <ProtectedRoute>
+        <App />
+      </ProtectedRoute>
+    ),
     children: [
-      {
-        index: true,
-        element: role === "admin" ? <Dashboard /> : <Home />,
-      },
-      {
-        path: "rooms",
-        element: <Rooms />,
-      },
-      {
-        path: "schedules",
-        element: <Schedules />,
-      },
-      {
-        path: "messages", // ✅ updated route
-        element: <Messages />,
-      },
-      {
-        path: "admin/edit-room",
-        element: <EditRoom />,
-      },
-      {
-        path: "admin/dashboard",
-        element: <Dashboard />,
-      },
+      { index: true, element: <Home /> },
+      { path: "rooms", element: <Rooms /> },
+      { path: "schedules", element: <Schedules /> },
+      { path: "messages", element: <Messages /> },
+      { path: "admin/edit-room", element: <EditRoom /> },
+      { path: "admin/dashboard", element: <Dashboard /> },
     ],
   },
+  { path: "/login", element: <Login /> },
+  { path: "/signup", element: <Signup /> },
 ]);
 
 export default router;
