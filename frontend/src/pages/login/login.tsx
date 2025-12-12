@@ -31,14 +31,14 @@ export default function LoginUI() {
       const data = await res.json();
 
       if (res.ok) {
-        // ✅ Save user in context and localStorage
+        // Save user in context and localStorage
         setUser({ username: data.username, role: data.role });
         localStorage.setItem(
           "user",
           JSON.stringify({ username: data.username, role: data.role })
         );
 
-        // ✅ Navigate automatically to app routes
+        // Navigate automatically to app routes
         navigate("/");
 
         setUsername("");
@@ -55,13 +55,13 @@ export default function LoginUI() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-blue-200 flex items-center justify-center p-4">
-      <div className="max-w-md w-full rounded-xl border bg-gray-100 text-card-foreground shadow-xl p-6 space-y-6">
+    <div className="min-h-screen w-full bg-slate-900 flex items-center justify-center p-4">
+      <div className="max-w-md w-full rounded-xl border bg-card text-card-foreground shadow-xl p-6 space-y-6">
+        {/* Header */}
         <div className="text-center">
           <h1 className="text-2xl font-bold">Welcome Back</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Sign in and don’t let your ideas fade. Note them down and make them
-            happen.
+            Sign in to access your classroom dashboard.
           </p>
         </div>
 

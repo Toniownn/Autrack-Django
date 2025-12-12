@@ -80,10 +80,11 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-blue-200 flex items-center justify-center p-4">
-      <div className="max-w-md w-full rounded-xl border bg-gray-100 text-card-foreground shadow-xl p-6 space-y-6">
+    <div className="min-h-screen w-full bg-slate-900 flex items-center justify-center p-4">
+      <div className="max-w-md w-full rounded-xl border bg-card text-card-foreground shadow-xl p-6 space-y-6">
+        {/* Header */}
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-3">Create an Account</h1>
+          <h1 className="text-2xl font-bold">Create an Account</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Join us to start reserving classrooms easily.
           </p>
@@ -159,11 +160,15 @@ export default function Signup() {
               onChange={(e) =>
                 setFormData({ ...formData, type: e.target.value as "S" | "T" })
               }
-              className="w-full border rounded p-2"
+              className="w-full border rounded p-2 text-gray-900 bg-white"
               required
             >
-              <option value="S">Student</option>
-              <option value="T">Teacher</option>
+              <option className="text-gray-900" value="S">
+                Student
+              </option>
+              <option className="text-gray-900" value="T">
+                Teacher
+              </option>
             </select>
           </div>
 
