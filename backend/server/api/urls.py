@@ -1,6 +1,6 @@
 from django.urls import path
 from django.contrib import admin
-from .views import ActiveRoomsView, AllRoomsView, InactiveRoomsView, RegisterUserView, RoomCreateView, RoomDeleteView, RoomListView, RoomUpdateView
+from .views import ActiveRoomsView, AllRoomsView, InactiveRoomsView, RegisterUserView, RoomCreateView, RoomDeleteView, RoomUpdateView
 from .views import RegisterUserView, LoginUserView, LogoutUserView, CheckSessionView, EditProfileView, GetProfileView
 
 urlpatterns = [
@@ -13,7 +13,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
         # Rooms
-    path('rooms/', RoomListView.as_view(), name='room-list'),
     path('rooms/all/', AllRoomsView.as_view(), name='rooms-all'),
     path('rooms/active/', ActiveRoomsView.as_view(), name='rooms-active'),
     path('rooms/inactive/', InactiveRoomsView.as_view(), name='rooms-inactive'),

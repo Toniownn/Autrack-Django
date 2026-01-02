@@ -108,15 +108,6 @@ class GetProfileView(APIView):
 # Room Views
 # -------------------------
 
-class RoomListView(View):
-    def get(self, request):
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT * FROM vw_rooms")
-            rows = cursor.fetchall()
-            columns = [col[0] for col in cursor.description]
-            rooms = [dict(zip(columns, row)) for row in rows]
-        return JsonResponse({'rooms': rooms})
-
 class AllRoomsView(View):
     """All rooms, regardless of is_active"""
     def get(self, request):
