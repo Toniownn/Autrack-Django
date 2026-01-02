@@ -4,7 +4,7 @@ from django.contrib.auth import authenticate
 
 
 class RegisterForm(forms.Form):
-    username = forms.CharField(max_length=15)
+    username = forms.CharField(max_length=50)
     first_name = forms.CharField(max_length=50)
     last_name = forms.CharField(max_length=50)
     middle_name = forms.CharField(max_length=50, required=False)

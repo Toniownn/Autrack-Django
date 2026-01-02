@@ -1,11 +1,11 @@
+import AllRooms from "./AllRooms";
 import Banner from "./Banner";
-import MostUsedClassrooms from "./MostUsedClassrooms";
 
 const Home = () => {
   return (
     <>
       <Banner />
-      <MostUsedClassrooms />
+      <AllRooms />
     </>
   );
 };

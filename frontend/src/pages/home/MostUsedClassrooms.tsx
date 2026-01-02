@@ -8,18 +8,19 @@ const MostUsedClassrooms = () => {
 
   const loadMostUsed = async () => {
     try {
-      const stored = localStorage.getItem("classrooms");
-      if (stored) {
-        const data: Room[] = JSON.parse(stored);
-        setMostUsed(data.filter((room) => room.popularity));
-      } else {
-        const response = await fetch("/classrooms.json");
-        const data: Room[] = await response.json();
-        setMostUsed(data.filter((room) => room.popularity));
-        localStorage.setItem("classrooms", JSON.stringify(data));
-      }
+      const response = await fetch("http://localhost:8000/api/rooms/");
+      if (!response.ok) throw new Error("Failed to fetch rooms");
+
+      const data = await response.json();
+      const rooms: Room[] = data.rooms || [];
+
+      // If you have a popularity field, you can filter here
+      // setMostUsed(rooms.filter((room) => room.popularity));
+
+      setMostUsed(rooms); // Display all rooms for now
     } catch (error) {
       console.error("Failed to fetch classrooms:", error);
+      setMostUsed([]);
     } finally {
       setLoading(false);
     }
@@ -28,13 +29,10 @@ const MostUsedClassrooms = () => {
   useEffect(() => {
     loadMostUsed();
 
-    // 🔁 Listen for any updates in room availability
+    // Optional: listen for room updates
     const handleRoomsUpdate = () => loadMostUsed();
     window.addEventListener("roomsUpdated", handleRoomsUpdate);
-
-    return () => {
-      window.removeEventListener("roomsUpdated", handleRoomsUpdate);
-    };
+    return () => window.removeEventListener("roomsUpdated", handleRoomsUpdate);
   }, []);
 
   if (loading) {
@@ -54,7 +52,7 @@ const MostUsedClassrooms = () => {
           ))}
         </div>
       ) : (
-        <p className="text-muted-foreground">No popular classrooms found.</p>
+        <p className="text-muted-foreground">No classrooms found.</p>
       )}
     </section>
   );

@@ -6,6 +6,10 @@ from .models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django import forms
+from django.views import View
+from django.http import JsonResponse
+import json
+from django.db import connection
 
 class RegisterUserView(APIView):
     def post(self, request):
@@ -99,3 +103,91 @@ class GetProfileView(APIView):
             }, status=200)
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=404)
+
+# -------------------------
+# Room Views
+# -------------------------
+
+class RoomListView(View):
+    def get(self, request):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM vw_rooms")
+            rows = cursor.fetchall()
+            columns = [col[0] for col in cursor.description]
+            rooms = [dict(zip(columns, row)) for row in rows]
+        return JsonResponse({'rooms': rooms})
+
+class AllRoomsView(View):
+    """All rooms, regardless of is_active"""
+    def get(self, request):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM vw_rooms_all")
+            rows = cursor.fetchall()
+            columns = [col[0] for col in cursor.description]
+            rooms = [dict(zip(columns, row)) for row in rows]
+        return JsonResponse({'rooms': rooms})
+    
+class ActiveRoomsView(View):
+    """Only active rooms"""
+    def get(self, request):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM vw_rooms_active")
+            rows = cursor.fetchall()
+            columns = [col[0] for col in cursor.description]
+            rooms = [dict(zip(columns, row)) for row in rows]
+        return JsonResponse({'rooms': rooms})
+
+class InactiveRoomsView(View):
+    """Only inactive rooms"""
+    def get(self, request):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM vw_rooms_inactive")
+            rows = cursor.fetchall()
+            columns = [col[0] for col in cursor.description]
+            rooms = [dict(zip(columns, row)) for row in rows]
+        return JsonResponse({'rooms': rooms})
+
+
+# -------------------------
+# Room CRUD
+# -------------------------
+
+@method_decorator(csrf_exempt, name='dispatch')
+class RoomCreateView(View):
+    def post(self, request):
+        data = json.loads(request.body)
+        room_no = data.get('room_no')
+        image = data.get('image', '')
+        name = data.get('name')
+        department = data.get('department')
+        status = data.get('status', True)
+
+        with connection.cursor() as cursor:
+            cursor.callproc('sp_create_room', [room_no, image, name, department, status])
+        return JsonResponse({'status': 'success', 'message': 'Room created'})
+
+@method_decorator(csrf_exempt, name='dispatch')
+class RoomUpdateView(View):
+    def put(self, request, room_id):
+        data = json.loads(request.body)
+        room_no = data.get('room_no')
+        image = data.get('image', '')
+        name = data.get('name')
+        department = data.get('department')
+        status = data.get('status', True)  # default True if not sent
+
+        with connection.cursor() as cursor:
+            cursor.callproc('sp_update_room', [room_id, room_no, image, name, department, status])
+        return JsonResponse({'status': 'success', 'message': 'Room updated'})
+
+@method_decorator(csrf_exempt, name='dispatch')
+class RoomDeleteView(View):
+    """Hard delete a room using stored procedure sp_delete_room_hard"""
+    def delete(self, request, room_id):
+        try:
+            with connection.cursor() as cursor:
+                cursor.callproc('sp_delete_room_hard', [room_id])
+            return JsonResponse({'status': 'success', 'message': 'Room deleted permanently'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
